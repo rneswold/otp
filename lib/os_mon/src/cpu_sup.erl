@@ -231,7 +231,9 @@ get_uint32_measurement(Request, #internal{os_type = {unix, linux}}) ->
 	?ping -> 4711;
 	?nprocs -> PTotal
     end;
-get_uint32_measurement(Request, #internal{os_type = {unix, freebsd}}) ->
+get_uint32_measurement(Request, #internal{os_type = {unix, OS}})
+  when (OS == freebsd) orelse (OS == netbsd) orelse
+       (OS == dragonfly) orelse (OS == openbsd) ->
     D = os:cmd("/sbin/sysctl -n vm.loadavg") -- "\n",
     {ok,[Load1,Load5,Load15],_} = io_lib:fread("{ ~f ~f ~f }", D),
     %% We could count the lines from the ps command as well
@@ -239,33 +241,6 @@ get_uint32_measurement(Request, #internal{os_type = {unix, freebsd}}) ->
 	?avg1  -> sunify(Load1);
 	?avg5  -> sunify(Load5);
 	?avg15 -> sunify(Load15);
-	?ping -> 4711;
-	?nprocs ->
-	    Ps = os:cmd("/bin/ps -ax | /usr/bin/wc -l"),
-	    {ok, [N], _} = io_lib:fread("~d", Ps),
-	    N-1
-    end;
-get_uint32_measurement(Request, #internal{os_type = {unix, dragonfly}}) ->
-    D = os:cmd("/sbin/sysctl -n vm.loadavg") -- "\n",
-    {ok,[Load1,Load5,Load15],_} = io_lib:fread("{ ~f ~f ~f }", D),
-    %% We could count the lines from the ps command as well
-    case Request of
-	?avg1  -> sunify(Load1);
-	?avg5  -> sunify(Load5);
-	?avg15 -> sunify(Load15);
-	?ping -> 4711;
-	?nprocs ->
-	    Ps = os:cmd("/bin/ps -ax | /usr/bin/wc -l"),
-	    {ok, [N], _} = io_lib:fread("~d", Ps),
-	    N-1
-    end;
-get_uint32_measurement(Request, #internal{os_type = {unix, openbsd}}) ->
-    D = os:cmd("/sbin/sysctl -n vm.loadavg") -- "\n",
-    {ok, [L1, L5, L15], _} = io_lib:fread("~f ~f ~f", D),
-    case Request of
-	?avg1  -> sunify(L1);
-	?avg5  -> sunify(L5);
-	?avg15 -> sunify(L15);
 	?ping -> 4711;
 	?nprocs ->
 	    Ps = os:cmd("/bin/ps -ax | /usr/bin/wc -l"),
